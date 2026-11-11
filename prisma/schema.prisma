@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  passwordHash  String
+  createdAt     DateTime  @default(now())
+  profiles      OperatorProfile[]
+}
+
+model OperatorProfile {
+  id              String   @id @default(cuid())
+  callsign        String   @unique
+  name            String
+  born            Int?
+  died            Int?
+  biography       String?  @db.Text
+  locationQth     String?
+  licenceClass    String?
+  firstLicenced   Int?
+  isDraft         Boolean  @default(true)
+  isUnclaimed     Boolean  @default(false)
+  createdById     String?
+  createdBy       User?    @relation(fields: [createdById], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  timelineEvents    TimelineEvent[]
+  tributes          Tribute[]
+  equipmentItems    EquipmentItem[]
+  oralHistoryEntries OralHistoryEntry[]
+  clubMemberships   ClubMembership[]
+  connectionsFrom   OperatorConnection[] @relation("FromProfile")
+  connectionsTo     OperatorConnection[] @relation("ToProfile")
+}
+
+model TimelineEvent {
+  id          String   @id @default(cuid())
+  profileId   String
+  profile     OperatorProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  year        Int
+  title       String
+  description String?  @db.Text
+  isHighlight Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([profileId])
+}
+
+model Tribute {
+  id             String   @id @default(cuid())
+  profileId      String
+  profile        OperatorProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  authorName     String
+  authorCallsign String?
+  content        String   @db.Text
+  approved       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  @@index([profileId])
+}
+
+model EquipmentItem {
+  id          String   @id @default(cuid())
+  profileId   String
+  profile     OperatorProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  name        String
+  model       String?
+  yearsOwned  String?
+  description String?  @db.Text
+  provenance  String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  @@index([profileId])
+}
+
+model OralHistoryEntry {
+  id           String   @id @default(cuid())
+  profileId    String
+  profile      OperatorProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  question     String
+  answer       String   @db.Text
+  yearRecorded Int?
+  createdAt    DateTime @default(now())
+
+  @@index([profileId])
+}
+
+model ClubMembership {
+  id        String   @id @default(cuid())
+  profileId String
+  profile   OperatorProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  clubName  String
+  clubCall  String?
+  years     String?
+  role      String?
+  createdAt DateTime @default(now())
+
+  @@index([profileId])
+}
+
+model OperatorConnection {
+  id               String   @id @default(cuid())
+  fromProfileId    String
+  fromProfile      OperatorProfile @relation("FromProfile", fields: [fromProfileId], references: [id], onDelete: Cascade)
+  toProfileId      String
+  toProfile        OperatorProfile @relation("ToProfile", fields: [toProfileId], references: [id], onDelete: Cascade)
+  relationshipType String   // elmer, mentee, club_friend, contest_partner, dx_contact
+  description      String?
+
+  @@index([fromProfileId])
+  @@index([toProfileId])
+}
